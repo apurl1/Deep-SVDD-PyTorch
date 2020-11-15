@@ -9,13 +9,14 @@ import torchvision.transforms as transforms
 
 class MNIST_Dataset(TorchvisionDataset):
 
-    def __init__(self, root: str, normal_class=0):
+    def __init__(self, root: str, outlier_class):
         super().__init__(root)
 
-        self.n_classes = 2  # 0: normal, 1: outlier
-        self.normal_classes = tuple([normal_class])
-        self.outlier_classes = list(range(0, 10))
-        self.outlier_classes.remove(normal_class)
+        # self.n_classes = 2  # 0: normal, 1: outlier
+        self.outlier_classes = tuple([outlier_class])
+        self.normal_classes = list(range(0, 10))
+        self.normal_classes.remove(outlier_class)
+        print(self.outlier_classes, self.normal_classes)
 
         # Pre-computed min and max values (after applying GCN) from train data per class
         min_max = [(-0.8826567065619495, 9.001545489292527),
@@ -30,10 +31,13 @@ class MNIST_Dataset(TorchvisionDataset):
                    (-0.7369959242164307, 10.697039838804978)]
 
         # MNIST preprocessing: GCN (with L1 norm) and min-max feature scaling to [0,1]
+        norm1 = []; norm2 = []
+        for n in self.normal_classes:
+            norm1.append(min_max[n][0])
+            norm2.append(min_max[n][1] - min_max[n][0])
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Lambda(lambda x: global_contrast_normalization(x, scale='l1')),
-                                        transforms.Normalize([min_max[normal_class][0]],
-                                                             [min_max[normal_class][1] - min_max[normal_class][0]])])
+                                        transforms.Normalize(norm1, norm2)])
 
         target_transform = transforms.Lambda(lambda x: int(x in self.outlier_classes))
 

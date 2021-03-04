@@ -161,6 +161,10 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
                     device=device,
                     n_jobs_dataloader=n_jobs_dataloader)
 
+    # number of trainable model parameters
+    logger.info('Network trainable parameters: %d' % summary(deep_SVDD.net))
+    logger.info('AENet trainable parameters: %d' % summary(deep_SVDD.ae_net))
+    
     # Test model
     deep_SVDD.test(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
 

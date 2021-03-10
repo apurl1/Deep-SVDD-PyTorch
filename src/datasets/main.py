@@ -2,6 +2,7 @@ from .mnist import MNIST_Dataset
 from .fashion import Fashion_Dataset
 from .cifar10 import CIFAR10_Dataset
 from .wheel import WheelDatasets
+from .utils import WheelDataset
 
 def load_dataset(dataset_name, data_path, outlier_class):
     """Loads the dataset."""

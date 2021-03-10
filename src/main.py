@@ -6,6 +6,7 @@ import numpy as np
 
 from utils.config import Config
 from utils.visualization.plot_images_grid import plot_images_grid
+from datasets.utils import WheelDataset
 from deepSVDD import DeepSVDD
 from datasets.main import load_dataset
 from torchsummary import summary
@@ -133,7 +134,8 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
         logger.info('Pretraining weight decay: %g' % cfg.settings['ae_weight_decay'])
 
         # Pretrain model on dataset (via autoencoder)
-        deep_SVDD.pretrain(dataset,
+        if dataset_name == 'wheel':
+            deep_SVDD.pretrain_wheel(dataset,
                            optimizer_name=cfg.settings['ae_optimizer_name'],
                            lr=cfg.settings['ae_lr'],
                            n_epochs=cfg.settings['ae_n_epochs'],
@@ -142,6 +144,16 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
                            weight_decay=cfg.settings['ae_weight_decay'],
                            device=device,
                            n_jobs_dataloader=n_jobs_dataloader)
+        else:
+            deep_SVDD.pretrain(dataset,
+                            optimizer_name=cfg.settings['ae_optimizer_name'],
+                            lr=cfg.settings['ae_lr'],
+                            n_epochs=cfg.settings['ae_n_epochs'],
+                            lr_milestones=cfg.settings['ae_lr_milestone'],
+                            batch_size=cfg.settings['ae_batch_size'],
+                            weight_decay=cfg.settings['ae_weight_decay'],
+                            device=device,
+                            n_jobs_dataloader=n_jobs_dataloader)
 
     # Log training details
     logger.info('Training optimizer: %s' % cfg.settings['optimizer_name'])

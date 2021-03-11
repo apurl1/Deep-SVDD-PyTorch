@@ -38,7 +38,7 @@ class Wheel_LeNet_Autoencoder(BaseNet):
         self.pool = nn.MaxPool2d(2, 2)
 
         # Encoder (must match the Deep SVDD network above)
-        self.conv1 = nn.Conv2d(1, 8, 5, bias=False, padding=2)
+        self.conv1 = nn.Conv2d(1, 8, 5, bias=True, padding=2, stride=2)
         self.bn1 = nn.BatchNorm2d(8, eps=1e-04, affine=False)
         self.conv2 = nn.Conv2d(8, 4, 5, bias=False, padding=2)
         self.bn2 = nn.BatchNorm2d(4, eps=1e-04, affine=False)

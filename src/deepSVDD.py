@@ -4,6 +4,7 @@ import torch
 from base.base_dataset import BaseADDataset
 from networks.main import build_network, build_autoencoder
 from optim.deepSVDD_trainer import DeepSVDDTrainer
+from optim.deepSVDD_trainer_wheel import DeepSVDDTrainerWheel
 from optim.ae_trainer import AETrainer
 from optim.ae_trainer_wheel import AETrainerWheel
 
@@ -72,7 +73,35 @@ class DeepSVDD(object):
         self.c = self.trainer.c.cpu().data.numpy().tolist()  # get list
         self.results['train_time'] = self.trainer.train_time
 
+    def train_wheel(self, dataset: BaseADDataset, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 50,
+              lr_milestones: tuple = (), batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',
+              n_jobs_dataloader: int = 0):
+        """Trains the Deep SVDD model on the training data."""
+
+        self.optimizer_name = optimizer_name
+        self.trainer = DeepSVDDTrainerWheel(self.objective, self.R, self.c, self.nu, optimizer_name, lr=lr,
+                                       n_epochs=n_epochs, lr_milestones=lr_milestones, batch_size=batch_size,
+                                       weight_decay=weight_decay, device=device, n_jobs_dataloader=n_jobs_dataloader)
+        # Get the model
+        self.net = self.trainer.train(dataset, self.net)
+        self.R = float(self.trainer.R.cpu().data.numpy())  # get float
+        self.c = self.trainer.c.cpu().data.numpy().tolist()  # get list
+        self.results['train_time'] = self.trainer.train_time
+
     def test(self, dataset: BaseADDataset, device: str = 'cuda', n_jobs_dataloader: int = 0):
+        """Tests the Deep SVDD model on the test data."""
+
+        if self.trainer is None:
+            self.trainer = DeepSVDDTrainerWheel(self.objective, self.R, self.c, self.nu,
+                                           device=device, n_jobs_dataloader=n_jobs_dataloader)
+
+        self.trainer.test(dataset, self.net)
+        # Get results
+        self.results['test_auc'] = self.trainer.test_auc
+        self.results['test_time'] = self.trainer.test_time
+        self.results['test_scores'] = self.trainer.test_scores
+    
+    def test_wheel(self, dataset: BaseADDataset, device: str = 'cuda', n_jobs_dataloader: int = 0):
         """Tests the Deep SVDD model on the test data."""
 
         if self.trainer is None:

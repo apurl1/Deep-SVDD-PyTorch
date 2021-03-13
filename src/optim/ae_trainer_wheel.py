@@ -1,7 +1,7 @@
 from base.base_trainer import BaseTrainer
 from base.base_dataset import BaseADDataset
 from base.base_net import BaseNet
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve, auc, precision_recall_curve
 
 import logging
 import time
@@ -57,8 +57,8 @@ class AETrainerWheel(BaseTrainer):
 
                     # Update network parameters via backpropagation: forward + backward + optimize
                     outputs = ae_net(inputs.float())
-                    print(outputs.shape, inputs.shape)
-                    scores = torch.sum((outputs - inputs) ** 2, dim=tuple(range(1, outputs.dim())))
+                    # print(outputs.shape, inputs.shape)
+                    scores = torch.sum((outputs.float() - inputs.float()) ** 2, dim=tuple(range(1, outputs.dim())))
                     loss = torch.mean(scores)
                     loss.backward()
                     optimizer.step()
@@ -84,7 +84,7 @@ class AETrainerWheel(BaseTrainer):
         ae_net = ae_net.to(self.device)
 
         # Get test data loader
-        _, test_loader = dataset.loaders(batch_size=self.batch_size, num_workers=self.n_jobs_dataloader)
+        test_loader = dataset.test_set
 
         # Testing
         logger.info('Testing autoencoder...')
@@ -94,29 +94,30 @@ class AETrainerWheel(BaseTrainer):
         idx_label_score = []
         ae_net.eval()
         with torch.no_grad():
-            for data in test_loader:
-                inputs, labels, idx = data
-                inputs = inputs.to(self.device)
-                outputs = ae_net(inputs)
-                scores = torch.sum((outputs - inputs) ** 2, dim=tuple(range(1, outputs.dim())))
-                loss = torch.mean(scores)
+            for inputs, labels in test_loader:
+                if len(inputs) == 32:
+                    inputs = inputs.to(self.device)
+                    inputs = inputs.unsqueeze(1)
+                    outputs = ae_net(inputs.float())
+                    scores = torch.sum((outputs.float() - inputs.float()) ** 2, dim=tuple(range(1, outputs.dim())))
+                    loss = torch.mean(scores)
 
-                # Save triple of (idx, label, score) in a list
-                idx_label_score += list(zip(idx.cpu().data.numpy().tolist(),
-                                            labels.cpu().data.numpy().tolist(),
-                                            scores.cpu().data.numpy().tolist()))
+                    # Save triple of (idx, label, score) in a list
+                    idx_label_score += list(zip(labels.cpu().data.numpy().tolist(),
+                                                scores.cpu().data.numpy().tolist()))
 
-                loss_epoch += loss.item()
-                n_batches += 1
+                    loss_epoch += loss.item()
+                    n_batches += 1
 
         logger.info('Test set Loss: {:.8f}'.format(loss_epoch / n_batches))
 
-        _, labels, scores = zip(*idx_label_score)
+        labels, scores = zip(*idx_label_score)
         labels = np.array(labels)
         scores = np.array(scores)
 
-        auc = roc_auc_score(labels, scores)
-        logger.info('Test set AUC: {:.2f}%'.format(100. * auc))
+        fpr, tpr, thresholds = roc_curve(labels, scores, pos_label=1)
+        test_auc = auc(fpr, tpr)
+        logger.info('Test set AUC: {:.2f}%'.format(100. * test_auc))
 
         test_time = time.time() - start_time
         logger.info('Autoencoder testing time: %.3f' % test_time)

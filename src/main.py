@@ -164,7 +164,18 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
     logger.info('Training weight decay: %g' % cfg.settings['weight_decay'])
 
     # Train model on dataset
-    deep_SVDD.train(dataset,
+    if dataset_name == 'wheel':
+        deep_SVDD.train_wheel(dataset,
+                        optimizer_name=cfg.settings['optimizer_name'],
+                        lr=cfg.settings['lr'],
+                        n_epochs=cfg.settings['n_epochs'],
+                        lr_milestones=cfg.settings['lr_milestone'],
+                        batch_size=cfg.settings['batch_size'],
+                        weight_decay=cfg.settings['weight_decay'],
+                        device=device,
+                        n_jobs_dataloader=n_jobs_dataloader)
+    else:
+        deep_SVDD.train(dataset,
                     optimizer_name=cfg.settings['optimizer_name'],
                     lr=cfg.settings['lr'],
                     n_epochs=cfg.settings['n_epochs'],
@@ -173,16 +184,21 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
                     weight_decay=cfg.settings['weight_decay'],
                     device=device,
                     n_jobs_dataloader=n_jobs_dataloader)
-
-    # number of trainable model parameters
-    print('Network trainable parameters:')
-    summary(deep_SVDD.net, (1, 28, 28))
-    print('AENet trainable parameters:')
-    summary(deep_SVDD.ae_net, (1, 28, 28))
     
-    # Test model
-    deep_SVDD.test(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
-
+    # Test model and get number of trainable parameters
+    if dataset_name == 'wheel':
+        print('Network trainable parameters:')
+        summary(deep_SVDD.net, (1, 256, 256))
+        print('AENet trainable parameters:')
+        summary(deep_SVDD.ae_net, (1, 256, 256))
+        deep_SVDD.test_wheel(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
+    else:
+        print('Network trainable parameters:')
+        summary(deep_SVDD.net, (1, 28, 28))
+        print('AENet trainable parameters:')
+        summary(deep_SVDD.ae_net, (1, 28, 28))
+        deep_SVDD.test(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
+    '''
     # Plot most anomalous and most normal (within-class) test samples
     indices, labels, scores = zip(*deep_SVDD.results['test_scores'])
     indices, labels, scores = np.array(indices), np.array(labels), np.array(scores)
@@ -208,7 +224,7 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
 
         plot_images_grid(X_normals, export_img=xp_path + '/normals', title='Most normal examples', padding=2)
         plot_images_grid(X_outliers, export_img=xp_path + '/outliers', title='Most anomalous examples', padding=2)
-
+    '''
     # Save results, model, and configuration
     deep_SVDD.save_results(export_json=xp_path + '/results.json')
     deep_SVDD.save_model(export_model=xp_path + '/model.tar')

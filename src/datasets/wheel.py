@@ -19,6 +19,3 @@ class WheelDatasets(Dataset):
         self.train_set = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
         test_data = torch.load('../data/Wheel/sub_testing_set.pt')
         self.test_set = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=True)
-        
-        combined_test_data = [self.test_set, self.anomaly_set]
-        self.test_set = ConcatDataset(combined_test_data)
